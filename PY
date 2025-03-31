@@ -1,0 +1,100 @@
+import networkx as nx
+
+# Función para crear el grafo del Metro de Medellín
+def crear_grafo_metro():
+    G = nx.Graph()  # Se crea un grafo no dirigido
+    
+    # Definimos las estaciones con identificadores numéricos
+    estaciones = {
+        1: "Niquia", 2: "Bello", 3: "Tricentenario", 4: "Prado", 5: "Cisneros",
+        6: "Suramericana", 7: "Estadio", 8: "Floresta", 9: "San Antonio",
+        10: "Itagüí", 11: "La Estrella", 12: "San Javier", 13: "Santa Lucía"
+    }
+    
+    # Conexiones de la Línea A
+    conexiones_A = [
+        ("Niquia", "Bello"), ("Bello", "Tricentenario"), ("Tricentenario", "Prado"), ("Prado", "Cisneros"),
+        ("Cisneros", "Suramericana"), ("Suramericana", "Estadio"),
+        ("Estadio", "Floresta"), ("Floresta", "San Antonio"),
+        ("San Antonio", "Itagüí"), ("Itagüí", "La Estrella")
+    ]
+    
+    # Conexiones de la Línea B
+    conexiones_B = [
+        ("San Antonio", "San Javier"), ("San Javier", "Santa Lucía")
+    ]
+    
+    # Agregamos las conexiones al grafo con la etiqueta de la línea correspondiente
+    G.add_edges_from(conexiones_A, line="A")
+    G.add_edges_from(conexiones_B, line="B")
+    
+    return G, estaciones
+
+# Función para determinar el sentido del viaje
+def determinar_sentido(estacion_inicio, estacion_destino):
+    # Definimos las estaciones en orden de cada línea
+    linea_a_norte = ["La Estrella", "Itagüí", "San Antonio", "Floresta", "Estadio", "Suramericana", "Cisneros", "Prado", "Tricentenario", "Bello", "Niquia"]
+    linea_b = ["San Antonio", "San Javier", "Santa Lucía"]
+    
+    # Si ambas estaciones están en la Línea A
+    if estacion_inicio in linea_a_norte and estacion_destino in linea_a_norte:
+        sentido = "Norte" if linea_a_norte.index(estacion_inicio) < linea_a_norte.index(estacion_destino) else "Sur"
+        return "Línea A", sentido
+    
+    # Si ambas estaciones están en la Línea B
+    elif estacion_inicio in linea_b and estacion_destino in linea_b:
+        sentido = "Occidente" if linea_b.index(estacion_inicio) < linea_b.index(estacion_destino) else "Oriente"
+        return "Línea B", sentido
+    
+    # Si hay transbordo de Línea A a Línea B
+    elif estacion_inicio in linea_a_norte and estacion_destino in linea_b:
+        sentido_b = "Occidente" if linea_b.index("San Antonio") < linea_b.index(estacion_destino) else "Oriente"
+        return "Debe hacer transbordo en San Antonio a la Línea B", sentido_b
+    
+    # Si hay transbordo de Línea B a Línea A
+    elif estacion_inicio in linea_b and estacion_destino in linea_a_norte:
+        sentido_a = "Norte" if linea_a_norte.index("San Antonio") < linea_a_norte.index(estacion_destino) else "Sur"
+        return "Debe hacer transbordo en San Antonio a la Línea A", sentido_a
+    
+    return "Ruta desconocida", ""
+
+# Función para encontrar la mejor ruta entre dos estaciones
+def encontrar_ruta(G, estaciones, inicio, destino):
+    try:
+        ruta = nx.shortest_path(G, source=estaciones[inicio], target=estaciones[destino])  # Calcula la ruta más corta
+        linea, sentido = determinar_sentido(estaciones[inicio], estaciones[destino])  # Determina el sentido del viaje
+        return f"Mejor ruta: {linea}, sentido {sentido}. Recorrido: " + " → ".join(ruta)
+    except nx.NetworkXNoPath:
+        return "No hay una ruta válida entre estas estaciones."
+    except KeyError:
+        return "Selección inválida. Intente de nuevo."
+
+# Menú interactivo para que el usuario ingrese datos
+def menu():
+    G, estaciones = crear_grafo_metro()  # Crear el grafo del metro
+    while True:
+        print("\nEstaciones disponibles:")
+        for num, nombre in estaciones.items():
+            print(f"{num}. {nombre}")
+        
+        try:
+            inicio = int(input("Seleccione el número de la estación de inicio: "))
+            destino = int(input("Seleccione el número de la estación de destino: "))
+            
+            if inicio not in estaciones or destino not in estaciones:
+                print("Selección inválida. Intente de nuevo.")
+                continue
+            
+            ruta = encontrar_ruta(G, estaciones, inicio, destino)  # Calcula la mejor ruta
+            print(ruta)
+        
+        except ValueError:
+            print("Por favor, ingrese números válidos.")
+            continue
+        
+        opcion = input("¿Desea buscar otra ruta? (s/n): ").strip().lower()
+        if opcion != 's':
+            break
+
+if __name__ == "__main__":
+    menu()
